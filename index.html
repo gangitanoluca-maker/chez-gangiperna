@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Trattoria — Sistema Ordini</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Georgia',serif;background:#faf8f4;color:#1a1a1a;min-height:100vh;}
+  .app{max-width:960px;margin:0 auto;padding:1rem;}
+  .header{text-align:center;padding:2rem 0 1.5rem;border-bottom:1px solid #e0d8cc;margin-bottom:1.5rem;}
+  .header h1{font-size:2rem;font-weight:400;letter-spacing:.08em;color:#2c1810;}
+  .header p{font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;color:#8a7560;margin-top:.4rem;}
+  .nav{display:flex;gap:6px;justify-content:center;margin-bottom:1.5rem;flex-wrap:wrap;}
+  .nav-btn{padding:.5rem 1.2rem;border:1px solid #c9b99a;background:transparent;color:#5a4a35;cursor:pointer;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;transition:all .2s;font-family:Georgia,serif;}
+  .nav-btn:hover,.nav-btn.active{background:#2c1810;color:#faf8f4;border-color:#2c1810;}
+  .page{display:none;}.page.active{display:block;}
+  .login-box{max-width:360px;margin:2rem auto;background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:2rem;}
+  .login-box h2{font-size:1.2rem;font-weight:400;margin-bottom:1.5rem;color:#2c1810;text-align:center;}
+  .form-group{margin-bottom:1rem;}
+  .form-group label{display:block;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:#8a7560;margin-bottom:.4rem;}
+  .form-group input,.form-group select,.form-group textarea{width:100%;padding:.6rem .8rem;border:1px solid #d4c9b8;background:#faf8f4;color:#1a1a1a;font-family:Georgia,serif;font-size:.9rem;border-radius:2px;}
+  .form-group input:focus,.form-group textarea:focus,.form-group select:focus{outline:1px solid #8a7560;}
+  .btn{width:100%;padding:.7rem;background:#2c1810;color:#faf8f4;border:none;cursor:pointer;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;font-family:Georgia,serif;border-radius:2px;transition:background .2s;}
+  .btn:hover{background:#4a2e1e;}
+  .btn-outline{background:transparent;color:#2c1810;border:1px solid #2c1810;}.btn-outline:hover{background:#2c1810;color:#faf8f4;}
+  .btn-sm{width:auto;padding:.4rem .9rem;font-size:.72rem;}
+  .btn-danger{background:#8a2020;}.btn-danger:hover{background:#6a1818;}
+  .btn-success{background:#1a5c2e;}.btn-success:hover{background:#134522;}
+  .error-msg{background:#fdecea;border:1px solid #e9b9b9;color:#7a1a1a;padding:.6rem .8rem;border-radius:2px;font-size:.85rem;margin-bottom:1rem;display:none;}
+  .success-msg{background:#e8f4ed;border:1px solid #b8dcc4;color:#1a5c2e;padding:.8rem;border-radius:2px;text-align:center;font-size:.9rem;display:none;}
+  .section-title{font-size:1rem;letter-spacing:.12em;text-transform:uppercase;color:#8a7560;border-bottom:1px solid #e0d8cc;padding-bottom:.6rem;margin-bottom:1rem;}
+  .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.8rem;margin-bottom:1.5rem;}
+  .menu-item{background:#fff;border:1px solid #e0d8cc;border-radius:4px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .menu-item.unavailable{opacity:.5;}
+  .menu-item-img{width:100%;height:140px;object-fit:cover;display:block;}
+  .menu-item-img-ph{width:100%;height:140px;background:linear-gradient(135deg,#f0eae0,#e0d8cc);display:flex;align-items:center;justify-content:center;color:#c9b99a;font-size:2rem;}
+  .menu-item-body{padding:.8rem;flex:1;display:flex;flex-direction:column;}
+  .menu-item-name{font-size:1rem;font-weight:400;color:#2c1810;margin-bottom:.2rem;}
+  .menu-item-desc{font-size:.8rem;color:#8a7560;margin-bottom:.4rem;flex:1;}
+  .menu-item-price{font-size:1.1rem;color:#2c1810;}
+  .badge{font-size:.68rem;padding:2px 7px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase;display:inline-block;}
+  .b-avail{background:#e8f4ed;color:#1a5c2e;border:1px solid #b8dcc4;}
+  .b-unavail{background:#fdecea;color:#7a1a1a;border:1px solid #e9b9b9;}
+  .b-cat{background:#f0eae0;color:#5a4a35;border:1px solid #d4c9b8;}
+  .b-comp{background:#ede8f8;color:#4a2e8a;border:1px solid #c5b8ec;}
+  .b-low{background:#fef3e0;color:#8a5a0a;border:1px solid #f0c870;}
+  .abs-badges{position:absolute;top:.6rem;right:.6rem;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+  .qty-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .qty-dot.high{background:#1a5c2e;}.qty-dot.medium{background:#e0a020;}.qty-dot.low{background:#c0392b;}
+  .qty-row{display:flex;align-items:center;gap:.5rem;margin-top:.8rem;}
+  .qty-btn{width:28px;height:28px;border:1px solid #c9b99a;background:transparent;color:#2c1810;cursor:pointer;font-size:1rem;border-radius:2px;}
+  .qty-btn:disabled{opacity:.4;cursor:default;}
+  .qty-num{font-size:.9rem;min-width:20px;text-align:center;}
+  .add-cart-btn{margin-left:auto;padding:.35rem .8rem;background:#2c1810;color:#faf8f4;border:none;cursor:pointer;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-family:Georgia,serif;border-radius:2px;}
+  .add-cart-btn:disabled{background:#c9b99a;cursor:default;}
+  .ing-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:.4rem;}
+  .ing-tag{font-size:.7rem;background:#f0eae0;border:1px solid #d4c9b8;color:#5a4a35;padding:2px 6px;border-radius:2px;}
+  .ing-tag.out{background:#fdecea;border-color:#e9b9b9;color:#7a1a1a;text-decoration:line-through;}
+  .cart-section{background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:1.2rem;margin-top:1rem;}
+  .cart-item{display:flex;justify-content:space-between;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid #f0eae0;font-size:.9rem;gap:.5rem;}
+  .cart-item:last-child{border-bottom:none;}
+  .cart-item-detail{font-size:.75rem;color:#8a7560;font-style:italic;margin-top:2px;}
+  .cart-total{font-size:1.1rem;text-align:right;margin-top:.8rem;padding-top:.8rem;border-top:1px solid #e0d8cc;color:#2c1810;}
+  .order-note{width:100%;margin-top:.8rem;padding:.6rem;border:1px solid #d4c9b8;background:#faf8f4;font-family:Georgia,serif;font-size:.85rem;color:#1a1a1a;resize:vertical;min-height:60px;border-radius:2px;}
+  .order-card{background:#fff;border:1px solid #e0d8cc;border-left:3px solid #e0a020;border-radius:4px;padding:1rem;margin-bottom:.8rem;}
+  .order-card.done{border-left-color:#1a5c2e;opacity:.65;}
+  .order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;}
+  .order-id{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:#8a7560;}
+  .order-table{font-size:1rem;font-weight:400;color:#2c1810;}
+  .order-items-list{font-size:.85rem;color:#5a4a35;margin:.5rem 0;line-height:1.9;}
+  .order-item-custom{font-size:.78rem;color:#8a7560;font-style:italic;padding-left:1rem;}
+  .order-note-show{font-size:.8rem;color:#8a7560;font-style:italic;margin-top:.3rem;}
+  .order-actions{display:flex;gap:.5rem;margin-top:.8rem;}
+  .user-pill{background:#f0eae0;border:1px solid #d4c9b8;color:#5a4a35;font-size:.78rem;padding:2px 9px;border-radius:10px;display:inline-block;}
+  .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem;}
+  .admin-item{background:#fff;border:1px solid #e0d8cc;border-radius:4px;padding:.8rem;}
+  .admin-item-img{width:100%;height:70px;object-fit:cover;border-radius:3px;margin-bottom:.5rem;display:none;}
+  .admin-item-img.vis{display:block;}
+  .toggle-avail{padding:.3rem .7rem;font-size:.72rem;border-radius:2px;cursor:pointer;border:1px solid;font-family:Georgia,serif;text-transform:uppercase;}
+  .t-on{background:#e8f4ed;color:#1a5c2e;border-color:#b8dcc4;}
+  .t-off{background:#fdecea;color:#7a1a1a;border-color:#e9b9b9;}
+  .tabs{display:flex;margin-bottom:1rem;border-bottom:1px solid #e0d8cc;flex-wrap:wrap;}
+  .tab{padding:.5rem 1.1rem;cursor:pointer;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:#8a7560;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:Georgia,serif;}
+  .tab:hover{color:#2c1810;}.tab.active{color:#2c1810;border-bottom-color:#2c1810;}
+  .tab-content{display:none;}.tab-content.active{display:block;}
+  .badge-count{background:#e0a020;color:#fff;border-radius:9px;font-size:.7rem;padding:1px 6px;margin-left:5px;}
+  .logout-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;}
+  .logout-btn{padding:.3rem .8rem;background:transparent;color:#8a7560;border:1px solid #d4c9b8;cursor:pointer;font-size:.75rem;font-family:Georgia,serif;border-radius:2px;}
+  .logout-btn:hover{color:#2c1810;}
+  .filter-row{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
+  .filter-btn{padding:.3rem .9rem;border:1px solid #d4c9b8;background:transparent;color:#8a7560;cursor:pointer;font-size:.75rem;font-family:Georgia,serif;border-radius:2px;}
+  .filter-btn.active{background:#2c1810;color:#faf8f4;border-color:#2c1810;}
+  .qty-input-row{display:flex;align-items:center;gap:.5rem;margin-top:.5rem;}
+  .qty-input-row label{font-size:.75rem;color:#8a7560;white-space:nowrap;}
+  .qty-small-input{width:60px;padding:.3rem .5rem;border:1px solid #d4c9b8;background:#faf8f4;font-family:Georgia,serif;font-size:.85rem;border-radius:2px;text-align:center;}
+  .unlimited-check{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#8a7560;cursor:pointer;}
+  .table-row{display:flex;padding:.6rem 0;border-bottom:1px solid #f0eae0;align-items:center;gap:.8rem;}
+  .table-row:last-child{border-bottom:none;}
+  .ing-library{background:#f7fbf7;border:1px solid #c8dfc8;border-radius:4px;padding:1rem;margin-bottom:1rem;}
+  .ing-lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.5rem;margin-bottom:.8rem;}
+  .ing-lib-item{background:#fff;border:1px solid #d4e8d4;border-radius:3px;padding:.5rem .7rem;}
+  .ing-lib-item.out{background:#fff8f8;border-color:#e8d4d4;}
+  .ing-lib-top{display:flex;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.4rem;}
+  .ing-lib-name{font-size:.85rem;color:#2c1810;flex:1;}
+  .ing-lib-extra{font-size:.72rem;color:#8a7560;}
+  .ing-lib-actions{display:flex;align-items:center;gap:.3rem;}
+  .ing-avail-toggle{font-size:.65rem;padding:1px 5px;border-radius:2px;cursor:pointer;border:1px solid;font-family:Georgia,serif;white-space:nowrap;}
+  .iat-on{background:#e8f4ed;color:#1a5c2e;border-color:#b8dcc4;}
+  .iat-off{background:#fdecea;color:#7a1a1a;border-color:#e9b9b9;}
+  .ing-del-btn{background:none;border:none;color:#c0392b;cursor:pointer;font-size:.9rem;line-height:1;padding:0 2px;}
+  .ing-qty-row{display:flex;align-items:center;gap:.4rem;}
+  .ing-qty-row label{font-size:.7rem;color:#8a7560;white-space:nowrap;}
+  .ing-qty-input{width:52px;padding:.2rem .4rem;border:1px solid #d4c9b8;background:#faf8f4;font-family:Georgia,serif;font-size:.8rem;border-radius:2px;text-align:center;}
+  .ing-qty-input:disabled{background:#f0eae0;color:#c9b99a;}
+  .ing-qty-badge{font-size:.68rem;padding:1px 5px;border-radius:2px;border:1px solid;}
+  .ing-add-form{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;}
+  .ing-add-form input[type=text]{flex:1;min-width:120px;padding:.4rem .6rem;border:1px solid #d4c9b8;background:#faf8f4;font-family:Georgia,serif;font-size:.85rem;border-radius:2px;}
+  .ing-add-form input[type=number]{width:80px;padding:.4rem .6rem;border:1px solid #d4c9b8;background:#faf8f4;font-family:Georgia,serif;font-size:.85rem;border-radius:2px;}
+  .ing-add-form button{padding:.4rem .9rem;background:#2c1810;color:#faf8f4;border:none;border-radius:2px;cursor:pointer;font-family:Georgia,serif;font-size:.8rem;}
+  .comp-section{border:1px solid #e0d8cc;border-radius:4px;padding:.8rem;background:#faf8f4;margin-top:.6rem;}
+  .comp-section-title{font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:#8a7560;margin-bottom:.6rem;}
+  .comp-group-row{background:#fff;border:1px solid #e0d8cc;border-radius:3px;padding:.6rem;margin-bottom:.5rem;}
+  .comp-group-header{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;}
+  .comp-group-header input{flex:1;min-width:100px;padding:.3rem .5rem;font-family:Georgia,serif;font-size:.82rem;border:1px solid #d4c9b8;background:#faf8f4;border-radius:2px;}
+  .comp-group-header select{padding:.3rem .4rem;font-family:Georgia,serif;font-size:.78rem;border:1px solid #d4c9b8;background:#faf8f4;border-radius:2px;}
+  .comp-group-header button{font-size:.72rem;color:#8a2020;background:none;border:none;cursor:pointer;font-family:Georgia,serif;padding:.2rem .4rem;}
+  .ing-checkboxes{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.4rem;}
+  .ing-check-label{display:flex;align-items:center;gap:.3rem;font-size:.8rem;color:#2c1810;cursor:pointer;padding:.2rem .5rem;border:1px solid #d4c9b8;border-radius:2px;background:#faf8f4;}
+  .ing-check-label.selected{background:#f0eae0;border-color:#c9b99a;}
+  .ing-check-label.unavail-lib{opacity:.5;text-decoration:line-through;}
+  .ing-check-label input{accent-color:#2c1810;}
+  .add-group-btn{font-size:.75rem;color:#5a4a35;background:#f0eae0;border:1px dashed #c9b99a;padding:.3rem .8rem;cursor:pointer;border-radius:2px;font-family:Georgia,serif;margin-top:.4rem;}
+  .img-upload-area{border:2px dashed #d4c9b8;border-radius:4px;padding:.8rem;text-align:center;cursor:pointer;background:#faf8f4;}
+  .img-upload-area input{display:none;}
+  .img-upload-label{font-size:.8rem;color:#8a7560;}
+  .img-preview{width:100%;max-height:120px;object-fit:cover;border-radius:3px;margin-top:.5rem;display:none;}
+  .img-preview.vis{display:block;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(44,24,16,.45);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal-box{background:#faf8f4;border:1px solid #c9b99a;border-radius:6px;padding:1.5rem;max-width:500px;width:92%;max-height:88vh;overflow-y:auto;}
+  .modal-img{width:100%;max-height:150px;object-fit:cover;border-radius:4px;margin-bottom:1rem;display:none;}
+  .modal-img.vis{display:block;}
+  .modal-title{font-size:1.1rem;color:#2c1810;margin-bottom:.3rem;}
+  .modal-subtitle{font-size:.8rem;color:#8a7560;margin-bottom:1.2rem;}
+  .ingredient-group{margin-bottom:1rem;}
+  .ingredient-group-title{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:#8a7560;margin-bottom:.5rem;border-bottom:1px solid #e0d8cc;padding-bottom:.3rem;}
+  .ingredient-option{display:flex;align-items:center;gap:.6rem;padding:.35rem 0;font-size:.9rem;color:#2c1810;cursor:pointer;}
+  .ingredient-option.out-of-stock{opacity:.4;cursor:not-allowed;text-decoration:line-through;}
+  .ingredient-option input{accent-color:#2c1810;width:15px;height:15px;}
+  .ingredient-extra{font-size:.78rem;color:#8a7560;margin-left:auto;}
+  .out-label{font-size:.7rem;color:#7a1a1a;background:#fdecea;border:1px solid #e9b9b9;padding:1px 5px;border-radius:2px;margin-left:4px;}
+  .ing-qty-modal{font-size:.7rem;color:#8a5a0a;background:#fef3e0;border:1px solid #f0c870;padding:1px 5px;border-radius:2px;margin-left:4px;}
+  .modal-actions{display:flex;gap:.6rem;margin-top:1.2rem;}
+  @media(max-width:600px){
+    .admin-grid{grid-template-columns:1fr;}
+    .menu-grid{grid-template-columns:1fr;}
+    .ing-lib-grid{grid-template-columns:1fr;}
+    .header h1{font-size:1.5rem;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <!-- ✏️ CAMBIA QUI il nome del tuo ristorante -->
+    <h1>La Trattoria</h1>
+    <p>Sistema di gestione ordini</p>
+  </div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="showPage('menu')">Menù</button>
+    <button class="nav-btn" onclick="showPage('order')">Ordina</button>
+    <button class="nav-btn" onclick="showPage('kitchen')">Cucina</button>
+    <button class="nav-btn" onclick="showPage('admin')">Admin</button>
+  </div>
+
+  <!-- ==================== MENU PUBBLICO ==================== -->
+  <div class="page active" id="page-menu">
+    <div id="menu-filter-row" class="filter-row"></div>
+    <div id="menu-public-grid" class="menu-grid"></div>
+  </div>
+
+  <!-- ==================== ORDINA ==================== -->
+  <div class="page" id="page-order">
+    <div id="order-login">
+      <div class="login-box">
+        <h2>Accesso Cliente</h2>
+        <div class="error-msg" id="order-err">Inserisci nome e password corretti</div>
+        <div class="form-group"><label>Il tuo nome</label><input type="text" id="order-name" placeholder="Es. Marco" /></div>
+        <div class="form-group"><label>Password tavolo</label><input type="password" id="order-pwd" placeholder="••••••" onkeydown="if(event.key==='Enter')loginOrder()" /></div>
+        <button class="btn" onclick="loginOrder()">Accedi</button>
+      </div>
+    </div>
+    <div id="order-panel" style="display:none;">
+      <div class="logout-row">
+        <span style="font-size:.85rem;color:#5a4a35;">Benvenuto, <strong id="display-name"></strong></span>
+        <button class="logout-btn" onclick="logoutOrder()">Esci</button>
+      </div>
+      <div class="form-group" style="max-width:200px;margin-bottom:1rem;">
+        <label>Numero tavolo</label><input type="number" id="table-number" min="1" max="30" value="1" />
+      </div>
+      <div id="order-filter-row" class="filter-row"></div>
+      <div id="menu-order-grid" class="menu-grid"></div>
+      <div id="cart-section" class="cart-section" style="display:none;">
+        <div class="section-title">Il tuo ordine</div>
+        <div id="cart-items"></div>
+        <div class="cart-total" id="cart-total"></div>
+        <textarea class="order-note" id="order-note" placeholder="Note per la cucina (allergie, preferenze…)"></textarea>
+        <div style="margin-top:.8rem;display:flex;gap:.5rem;">
+          <button class="btn btn-outline btn-sm" onclick="clearCart()">Svuota</button>
+          <button class="btn btn-sm" style="flex:1;" onclick="submitOrder()">Invia ordine</button>
+        </div>
+      </div>
+      <div class="success-msg" id="order-success">✓ Ordine inviato! Verrà preparato a breve.</div>
+    </div>
+  </div>
+
+  <!-- ==================== CUCINA ==================== -->
+  <div class="page" id="page-kitchen">
+    <div id="kitchen-login">
+      <div class="login-box">
+        <h2>Accesso Cucina</h2>
+        <div class="error-msg" id="kitchen-err">Password non corretta</div>
+        <div class="form-group"><label>Password</label><input type="password" id="kitchen-pwd" placeholder="••••••" onkeydown="if(event.key==='Enter')loginKitchen()" /></div>
+        <button class="btn" onclick="loginKitchen()">Accedi</button>
+      </div>
+    </div>
+    <div id="kitchen-panel" style="display:none;">
+      <div class="logout-row"><span></span><button class="logout-btn" onclick="logoutKitchen()">Esci</button></div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('pending')">In attesa <span class="badge-count" id="badge-pending">0</span></div>
+        <div class="tab" onclick="switchTab('archived')">Archiviati</div>
+      </div>
+      <div class="tab-content active" id="tab-pending"><div id="orders-pending"></div></div>
+      <div class="tab-content" id="tab-archived"><div id="orders-archived"></div></div>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN ==================== -->
+  <div class="page" id="page-admin">
+    <div id="admin-login">
+      <div class="login-box">
+        <h2>Accesso Amministratore</h2>
+        <div class="error-msg" id="admin-err">Password non corretta</div>
+        <div class="form-group"><label>Password</label><input type="password" id="admin-pwd" placeholder="••••••" onkeydown="if(event.key==='Enter')loginAdmin()" /></div>
+        <button class="btn" onclick="loginAdmin()">Accedi</button>
+      </div>
+    </div>
+    <div id="admin-panel" style="display:none;">
+      <div class="logout-row"><span></span><button class="logout-btn" onclick="logoutAdmin()">Esci</button></div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchAdminTab('ingredients')">Ingredienti</div>
+        <div class="tab" onclick="switchAdminTab('availability')">Disponibilità</div>
+        <div class="tab" onclick="switchAdminTab('items')">Aggiungi piatto</div>
+        <div class="tab" onclick="switchAdminTab('passwords')">Password</div>
+      </div>
+
+      <div class="tab-content active" id="admin-tab-ingredients">
+        <div class="section-title" style="margin-top:1rem;">Libreria ingredienti componibili</div>
+        <p style="font-size:.82rem;color:#8a7560;margin-bottom:1rem;">Gestisci disponibilità e quantità. Ogni ordine scala automaticamente il contatore; a 0 l'ingrediente diventa non disponibile.</p>
+        <div class="ing-library">
+          <div class="ing-lib-grid" id="ing-lib-grid"></div>
+          <div style="border-top:1px solid #c8dfc8;padding-top:.8rem;margin-top:.4rem;">
+            <div style="font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:#3a6a3a;margin-bottom:.5rem;">Aggiungi ingrediente</div>
+            <div class="ing-add-form">
+              <input type="text" id="lib-ing-name" placeholder="Nome (es. Prosciutto crudo)" />
+              <input type="number" id="lib-ing-extra" placeholder="Extra €" step="0.5" min="0" style="width:80px;" />
+              <input type="number" id="lib-ing-qty" placeholder="Q.tà" min="0" style="width:72px;" />
+              <label class="unlimited-check" style="white-space:nowrap;"><input type="checkbox" id="lib-ing-unlimited" /> ∞</label>
+              <button onclick="addLibIngredient()">+ Aggiungi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="admin-tab-availability">
+        <div class="section-title" style="margin-top:1rem;">Disponibilità piatti</div>
+        <div class="admin-grid" id="admin-avail-grid"></div>
+      </div>
+
+      <div class="tab-content" id="admin-tab-items">
+        <div style="max-width:520px;margin-top:1rem;">
+          <div class="section-title">Nuovo piatto</div>
+          <div class="form-group"><label>Nome</label><input type="text" id="new-name" /></div>
+          <div class="form-group"><label>Descrizione</label><input type="text" id="new-desc" /></div>
+          <div class="form-group"><label>Prezzo base (€)</label><input type="number" step="0.50" id="new-price" /></div>
+          <div class="form-group"><label>Categoria</label>
+            <select id="new-cat"><option>Antipasti</option><option>Primi</option><option>Secondi</option><option>Contorni</option><option>Dolci</option><option>Bevande</option></select>
+          </div>
+          <div class="form-group">
+            <label>Immagine</label>
+            <div class="img-upload-area" onclick="document.getElementById('new-img-input').click()">
+              <input type="file" id="new-img-input" accept="image/*" onchange="previewNewImg(this)" />
+              <div class="img-upload-label" id="img-upload-lbl">📷 Clicca per caricare</div>
+              <img id="new-img-preview" class="img-preview" />
+            </div>
+            <button onclick="clearNewImg()" style="font-size:.72rem;color:#8a2020;background:none;border:none;cursor:pointer;display:none;margin-top:.3rem;" id="clear-img-btn">✕ Rimuovi</button>
+          </div>
+          <div class="form-group">
+            <label>Quantità disponibile</label>
+            <div style="display:flex;align-items:center;gap:.8rem;">
+              <input type="number" id="new-qty" min="0" value="10" style="width:80px;" />
+              <label class="unlimited-check"><input type="checkbox" id="new-unlimited" onchange="document.getElementById('new-qty').disabled=this.checked" /> Illimitata</label>
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:#5a4a35;cursor:pointer;margin-top:.4rem;">
+            <input type="checkbox" id="new-composable" onchange="toggleCompSection(this)" style="accent-color:#2c1810;" />
+            Piatto componibile dal cliente
+          </label>
+          <div id="new-comp-section" style="display:none;margin-top:.8rem;">
+            <div class="comp-section">
+              <div class="comp-section-title">Gruppi di selezione — scegli gli ingredienti dalla libreria</div>
+              <div id="new-comp-groups"></div>
+              <button class="add-group-btn" onclick="addCompGroup()">+ Aggiungi gruppo</button>
+            </div>
+          </div>
+          <button class="btn" style="margin-top:1rem;" onclick="addItem()">Aggiungi al menù</button>
+          <div class="success-msg" id="add-success" style="margin-top:.8rem;">✓ Piatto aggiunto!</div>
+          <div style="margin-top:1.5rem;">
+            <div class="section-title">Rimuovi piatto</div>
+            <div id="admin-remove-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="admin-tab-passwords">
+        <div style="max-width:400px;margin-top:1rem;">
+          <div class="section-title">Cambia password</div>
+          <div class="form-group"><label>Password clienti</label><input type="text" id="pwd-order" /></div>
+          <div class="form-group"><label>Password cucina</label><input type="text" id="pwd-kitchen" /></div>
+          <div class="form-group"><label>Password admin</label><input type="text" id="pwd-admin" /></div>
+          <button class="btn" onclick="savePwds()">Salva password</button>
+          <div class="success-msg" id="pwd-success" style="margin-top:.8rem;">✓ Password aggiornate!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL COMPOSIZIONE ==================== -->
+<div class="modal-overlay" id="compose-modal" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <img class="modal-img" id="modal-img" />
+    <div class="modal-title" id="modal-item-name"></div>
+    <div class="modal-subtitle" id="modal-item-desc"></div>
+    <div id="modal-groups"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-sm" style="flex:1;" onclick="confirmCompose()">Aggiungi al carrello</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// DATI DEFAULT — puoi svuotarli e ricominciare da zero dall'admin
+// =====================================================================
+const DEFAULT_ING_LIB = [
+  {id:'il1',label:'Prosciutto crudo',extra:0,available:true,qty:20,unlimited:false},
+  {id:'il2',label:'Salame',extra:0,available:true,qty:20,unlimited:false},
+  {id:'il3',label:'Bresaola',extra:1,available:true,qty:15,unlimited:false},
+  {id:'il4',label:'Mortadella',extra:0,available:false,qty:0,unlimited:false},
+  {id:'il5',label:'Parmigiano',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il6',label:'Pecorino',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il7',label:'Gorgonzola',extra:1,available:true,qty:8,unlimited:false},
+  {id:'il8',label:'Rucola',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il9',label:'Pomodori secchi',extra:0.5,available:true,qty:12,unlimited:false},
+  {id:'il10',label:'Olive',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il11',label:'Tartufo',extra:4,available:true,qty:5,unlimited:false},
+  {id:'il12',label:'Tagliatelle',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il13',label:'Pappardelle',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il14',label:'Rigatoni',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il15',label:'Al sangue',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il16',label:'Media cottura',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il17',label:'Ben cotta',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il18',label:'Patate arrosto',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il19',label:'Verdure grigliate',extra:0,available:true,qty:null,unlimited:true},
+  {id:'il20',label:'Insalata mista',extra:0,available:true,qty:null,unlimited:true},
+];
+const DEFAULT_MENU = [
+  {id:'i1',name:'Bruschetta al pomodoro',desc:'Pane tostato, pomodoro fresco, basilico e olio EVO',price:7.5,cat:'Antipasti',available:true,qty:null,composable:false,groups:[],img:null},
+  {id:'i2',name:'Tagliere misto',desc:'Salumi e formaggi locali con miele',price:14,cat:'Antipasti',available:true,qty:8,composable:true,img:null,groups:[
+    {name:'Salumi',type:'multi',ingIds:['il1','il2','il3','il4']},
+    {name:'Formaggi',type:'multi',ingIds:['il5','il6','il7']},
+  ]},
+  {id:'i3',name:'Risotto ai porcini',desc:'Riso Carnaroli, funghi porcini freschi, parmigiano',price:16,cat:'Primi',available:true,qty:6,composable:false,groups:[],img:null},
+  {id:'i4',name:'Pasta al ragù',desc:'Pasta fresca, ragù della tradizione, 8 ore di cottura',price:14,cat:'Primi',available:true,qty:null,composable:true,img:null,groups:[
+    {name:'Tipo di pasta',type:'single',ingIds:['il12','il13','il14']},
+    {name:'Aggiunte',type:'multi',ingIds:['il5','il11']},
+  ]},
+  {id:'i5',name:'Spaghetti vongole',desc:'Vongole veraci, aglio, prezzemolo, vino bianco',price:18,cat:'Primi',available:false,qty:0,composable:false,groups:[],img:null},
+  {id:'i6',name:'Filetto di manzo',desc:'200g, cotto alla brace con rosmarino',price:28,cat:'Secondi',available:true,qty:4,composable:true,img:null,groups:[
+    {name:'Cottura',type:'single',ingIds:['il15','il16','il17']},
+    {name:'Contorno incluso',type:'single',ingIds:['il18','il19','il20']},
+  ]},
+  {id:'i7',name:'Branzino al forno',desc:'Con patate, olive e capperi',price:22,cat:'Secondi',available:true,qty:3,composable:false,groups:[],img:null},
+  {id:'i8',name:'Tiramisù',desc:'Ricetta della nonna, savoiardi e mascarpone',price:7,cat:'Dolci',available:true,qty:null,composable:false,groups:[],img:null},
+  {id:'i9',name:'Panna cotta',desc:'Con coulis di frutti di bosco',price:6,cat:'Dolci',available:true,qty:5,composable:false,groups:[],img:null},
+  {id:'i10',name:'Acqua naturale 1L',desc:'',price:2,cat:'Bevande',available:true,qty:null,composable:false,groups:[],img:null},
+  {id:'i11',name:'Vino rosso (calice)',desc:"Barbera d'Asti DOCG",price:5,cat:'Bevande',available:true,qty:null,composable:false,groups:[],img:null},
+];
+const DEFAULT_PWDS={order:'tavolo2024',kitchen:'cucina2024',admin:'admin2024'};
+
+// =====================================================================
+// STATO
+// =====================================================================
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+let ingLib   = load('rm_inglib', DEFAULT_ING_LIB);
+let menu     = load('rm_menu',   DEFAULT_MENU);
+let orders   = load('rm_orders', []);
+let pwds     = load('rm_pwds',   DEFAULT_PWDS);
+let cart={}, activeFilter='Tutti', orderFilter='Tutti';
+let kitchenLoggedIn=false, adminLoggedIn=false, orderLoggedIn=false;
+let currentUser='', kitchenTimer=null;
+let composeItemId=null, composeSelections={};
+let newCompGroups=[], newImgData=null;
+
+function saveAll(){save('rm_inglib',ingLib);save('rm_menu',menu);save('rm_orders',orders);save('rm_pwds',pwds);}
+function isAvail(i){return i.available&&(i.qty===null||i.qty>0);}
+function ingAvail(g){return g.available&&(g.unlimited||g.qty===null||g.qty>0);}
+function cats(){return['Tutti',...new Set(menu.map(i=>i.cat))];}
+function ing(id){return ingLib.find(x=>x.id===id);}
+
+function ingQtyBadgeHtml(g){
+  if(g.unlimited||g.qty===null)return'';
+  if(g.qty===0)return'';
+  if(g.qty<=3)return`<span class="ing-qty-modal b-low">Ultime ${g.qty}</span>`;
+  return'';
+}
+function qtyBadgeHtml(i){
+  if(i.qty===null||i.qty===0)return'';
+  const low=i.qty<=2;
+  return`<div style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;margin-top:.3rem;">
+    <span class="qty-dot ${low?'low':i.qty<=5?'medium':'high'}"></span>
+    <span class="badge ${low?'b-low':'b-avail'}">${low?`Ultime ${i.qty}!`:`${i.qty} disponibili`}</span>
+  </div>`;
+}
+
+// =====================================================================
+// LIBRERIA INGREDIENTI
+// =====================================================================
+function renderIngLib(){
+  document.getElementById('ing-lib-grid').innerHTML = ingLib.length===0
+    ? '<p style="font-size:.82rem;color:#8a7560;grid-column:1/-1;">Nessun ingrediente.</p>'
+    : ingLib.map(g=>{
+      const av=ingAvail(g);
+      const qtyNum=g.unlimited?null:g.qty;
+      let qtyBadge='';
+      if(!g.unlimited&&qtyNum!==null){
+        if(qtyNum===0)qtyBadge='<span class="ing-qty-badge b-unavail">Esaurito</span>';
+        else if(qtyNum<=3)qtyBadge=`<span class="ing-qty-badge b-low">Ultime ${qtyNum}</span>`;
+        else qtyBadge=`<span class="ing-qty-badge b-avail">${qtyNum} pz</span>`;
+      }
+      return`<div class="ing-lib-item${!av?' out':''}">
+        <div class="ing-lib-top">
+          <span class="ing-lib-name">${g.label}</span>
+          ${g.extra?`<span class="ing-lib-extra">+€${Number(g.extra).toFixed(2)}</span>`:''}
+          <div class="ing-lib-actions">
+            <button class="ing-avail-toggle ${av?'iat-on':'iat-off'}" onclick="toggleLibIng('${g.id}')">${av?'✓':'✗'}</button>
+            <button class="ing-del-btn" onclick="deleteLibIng('${g.id}')">×</button>
+          </div>
+        </div>
+        <div class="ing-qty-row">
+          <label>Q.tà:</label>
+          <input type="number" class="ing-qty-input" min="0" value="${g.unlimited?'':g.qty??''}" placeholder="∞"
+            id="ingqty-${g.id}" onchange="setIngQty('${g.id}',this.value)" ${g.unlimited?'disabled':''} />
+          <label class="unlimited-check" style="font-size:.7rem;"><input type="checkbox" ${g.unlimited?'checked':''} onchange="toggleIngUnlimited('${g.id}',this)" /> ∞</label>
+          ${qtyBadge}
+        </div>
+      </div>`;
+    }).join('');
+}
+function toggleLibIng(id){
+  const g=ingLib.find(x=>x.id===id);if(!g)return;
+  g.available=!g.available;
+  if(g.available&&!g.unlimited&&(g.qty===0||g.qty===null))g.qty=1;
+  saveAll();renderIngLib();renderPublicMenu();if(orderLoggedIn)renderOrderMenu();
+}
+function setIngQty(id,val){
+  const g=ingLib.find(x=>x.id===id);if(!g)return;
+  const n=parseInt(val);if(isNaN(n)||n<0)return;
+  g.qty=n;g.available=n>0;
+  saveAll();renderIngLib();renderPublicMenu();if(orderLoggedIn)renderOrderMenu();
+}
+function toggleIngUnlimited(id,cb){
+  const g=ingLib.find(x=>x.id===id);if(!g)return;
+  g.unlimited=cb.checked;
+  if(cb.checked){g.qty=null;g.available=true;}else{g.qty=10;g.available=true;}
+  saveAll();renderIngLib();renderPublicMenu();if(orderLoggedIn)renderOrderMenu();
+}
+function deleteLibIng(id){
+  if(!confirm('Rimuovere questo ingrediente?\nViene rimosso anche dai piatti che lo usano.'))return;
+  ingLib=ingLib.filter(x=>x.id!==id);
+  menu.forEach(m=>{if(m.groups)m.groups.forEach(g=>{g.ingIds=g.ingIds.filter(x=>x!==id);});});
+  saveAll();renderIngLib();renderPublicMenu();if(adminLoggedIn)renderAdmin();
+}
+function addLibIngredient(){
+  const name=document.getElementById('lib-ing-name').value.trim();
+  const extra=parseFloat(document.getElementById('lib-ing-extra').value)||0;
+  const unlimited=document.getElementById('lib-ing-unlimited').checked;
+  const qtyRaw=parseInt(document.getElementById('lib-ing-qty').value);
+  const qty=unlimited?null:(isNaN(qtyRaw)?10:Math.max(0,qtyRaw));
+  if(!name)return;
+  ingLib.push({id:'il'+Date.now(),label:name,extra:extra||undefined,available:unlimited||qty>0,qty,unlimited});
+  document.getElementById('lib-ing-name').value='';
+  document.getElementById('lib-ing-extra').value='';
+  document.getElementById('lib-ing-qty').value='';
+  document.getElementById('lib-ing-unlimited').checked=false;
+  saveAll();renderIngLib();renderNewCompGroups();
+}
+
+// =====================================================================
+// MENU PUBBLICO
+// =====================================================================
+function buildIngTagsHtml(item){
+  if(!item.groups||!item.groups.length)return'';
+  const allIds=[...new Set(item.groups.flatMap(g=>g.ingIds))];
+  if(!allIds.length)return'';
+  return`<div class="ing-tags">${allIds.map(id=>{const g=ing(id);return g?`<span class="ing-tag${!ingAvail(g)?' out':''}">${g.label}</span>`:''}).join('')}</div>`;
+}
+function renderPublicMenu(){
+  document.getElementById('menu-filter-row').innerHTML=cats().map(c=>`<button class="filter-btn${activeFilter===c?' active':''}" onclick="setFilter('${c}','public')">${c}</button>`).join('');
+  const items=activeFilter==='Tutti'?menu:menu.filter(i=>i.cat===activeFilter);
+  document.getElementById('menu-public-grid').innerHTML=items.map(i=>{
+    const av=isAvail(i);
+    const imgHtml=i.img?`<img class="menu-item-img" src="${i.img}" alt="${i.name}" />`:`<div class="menu-item-img-ph">🍽️</div>`;
+    return`<div class="menu-item${!av?' unavailable':''}">
+      ${imgHtml}
+      <div class="abs-badges">
+        <span class="badge ${av?'b-avail':'b-unavail'}">${av?'Disponibile':'Esaurito'}</span>
+        ${i.composable?'<span class="badge b-comp">Componibile</span>':''}
+      </div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">${i.name}</div>
+        <div class="menu-item-desc">${i.desc}</div>
+        <div class="menu-item-price">€${Number(i.price).toFixed(2)}</div>
+        ${i.composable?buildIngTagsHtml(i):''}
+        ${qtyBadgeHtml(i)}
+        <div style="margin-top:.4rem;"><span class="badge b-cat">${i.cat}</span></div>
+      </div>
+    </div>`;
+  }).join('')||'<p style="color:#8a7560;font-size:.9rem;">Nessun piatto.</p>';
+}
+function setFilter(c,ctx){if(ctx==='public'){activeFilter=c;renderPublicMenu();}else{orderFilter=c;renderOrderMenu();}}
+
+// =====================================================================
+// MENU ORDINE
+// =====================================================================
+function cartCount(id){if(!cart[id])return 0;return cart[id].reduce((s,e)=>s+e.qty,0);}
+function maxAddable(i){if(i.qty===null)return 99;return Math.max(0,i.qty-cartCount(i.id));}
+function renderOrderMenu(){
+  document.getElementById('order-filter-row').innerHTML=cats().map(c=>`<button class="filter-btn${orderFilter===c?' active':''}" onclick="setFilter('${c}','order')">${c}</button>`).join('');
+  const items=orderFilter==='Tutti'?menu:menu.filter(i=>i.cat===orderFilter);
+  document.getElementById('menu-order-grid').innerHTML=items.map(i=>{
+    const av=isAvail(i);const q=cartCount(i.id);const canAdd=av&&maxAddable(i)>0;
+    const imgHtml=i.img?`<img class="menu-item-img" src="${i.img}" alt="${i.name}" />`:`<div class="menu-item-img-ph">🍽️</div>`;
+    return`<div class="menu-item${!av?' unavailable':''}">
+      ${imgHtml}
+      <div class="abs-badges">
+        <span class="badge ${av?'b-avail':'b-unavail'}">${av?'Disponibile':'Esaurito'}</span>
+        ${i.composable?'<span class="badge b-comp">Componibile</span>':''}
+      </div>
+      <div class="menu-item-body">
+        <div class="menu-item-name">${i.name}</div>
+        <div class="menu-item-desc">${i.desc}</div>
+        <div class="menu-item-price">€${Number(i.price).toFixed(2)}</div>
+        ${i.composable?buildIngTagsHtml(i):''}
+        ${qtyBadgeHtml(i)}
+        <div class="qty-row">
+          ${i.composable
+            ?`<button class="add-cart-btn" style="margin-left:0;" onclick="openModal('${i.id}')" ${!canAdd?'disabled':''}>Personalizza &amp; aggiungi</button>
+              <span class="qty-num" style="margin-left:auto;">${q>0?`×${q}`:''}</span>`
+            :`<button class="qty-btn" onclick="simpleRemove('${i.id}')" ${q===0?'disabled':''}>−</button>
+              <span class="qty-num">${q}</span>
+              <button class="qty-btn" onclick="simpleAdd('${i.id}')" ${!canAdd?'disabled':''}>+</button>
+              <button class="add-cart-btn" onclick="simpleAdd('${i.id}')" ${!canAdd?'disabled':''}>Aggiungi</button>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('')||'<p style="color:#8a7560;font-size:.9rem;">Nessun piatto.</p>';
+  renderCart();
+}
+function simpleAdd(id){
+  const item=menu.find(i=>i.id===id);if(!item||!isAvail(item)||maxAddable(item)<=0)return;
+  if(!cart[id])cart[id]=[];
+  const ex=cart[id].find(e=>!Object.keys(e.selections).length);
+  if(ex)ex.qty++;else cart[id].push({qty:1,selections:{},extra:0,ingIds:[]});
+  renderOrderMenu();
+}
+function simpleRemove(id){
+  if(!cart[id]||!cart[id].length)return;
+  const e=cart[id][cart[id].length-1];e.qty--;
+  if(e.qty<=0)cart[id].splice(cart[id].length-1,1);
+  if(!cart[id].length)delete cart[id];renderOrderMenu();
+}
+
+// =====================================================================
+// MODAL COMPOSIZIONE
+// =====================================================================
+function openModal(id){
+  const item=menu.find(i=>i.id===id);if(!item)return;
+  composeItemId=id;composeSelections={};
+  const mImg=document.getElementById('modal-img');
+  if(item.img){mImg.src=item.img;mImg.classList.add('vis');}else mImg.classList.remove('vis');
+  document.getElementById('modal-item-name').textContent=item.name;
+  document.getElementById('modal-item-desc').textContent=`${item.desc} — €${Number(item.price).toFixed(2)}`;
+  document.getElementById('modal-groups').innerHTML=item.groups.map((g,gi)=>`
+    <div class="ingredient-group">
+      <div class="ingredient-group-title">${g.name} — ${g.type==='single'?'scelta singola':'più scelte'}</div>
+      ${g.ingIds.map(ingId=>{
+        const opt=ing(ingId);if(!opt)return'';
+        const av=ingAvail(opt);
+        return`<label class="ingredient-option${!av?' out-of-stock':''}">
+          <input type="${g.type==='single'?'radio':'checkbox'}" name="grp_${gi}" value="${ingId}"
+            ${!av?'disabled':''} onchange="selectIng('${gi}','${ingId}','${g.type}')" />
+          <span>${opt.label}</span>
+          ${opt.extra?`<span class="ingredient-extra">+€${Number(opt.extra).toFixed(2)}</span>`:''}
+          ${!av?'<span class="out-label">Esaurito</span>':ingQtyBadgeHtml(opt)}
+        </label>`;
+      }).join('')}
+    </div>`).join('');
+  document.getElementById('compose-modal').style.display='flex';
+}
+function closeModal(){document.getElementById('compose-modal').style.display='none';composeItemId=null;composeSelections={};}
+function selectIng(gi,ingId,type){
+  if(type==='single'){composeSelections[gi]=[ingId];}
+  else{
+    if(!composeSelections[gi])composeSelections[gi]=[];
+    const idx=composeSelections[gi].indexOf(ingId);
+    if(idx>=0)composeSelections[gi].splice(idx,1);else composeSelections[gi].push(ingId);
+  }
+}
+function confirmCompose(){
+  const item=menu.find(i=>i.id===composeItemId);if(!item)return;
+  let extra=0;const selLabels={};const chosenIngIds=[];
+  item.groups.forEach((g,gi)=>{
+    const chosen=composeSelections[gi.toString()]||[];
+    if(chosen.length){
+      selLabels[g.name]=chosen.map(ingId=>{
+        const opt=ing(ingId);if(!opt)return'';
+        if(opt.extra)extra+=opt.extra;chosenIngIds.push(ingId);return opt.label;
+      }).filter(Boolean);
+    }
+  });
+  if(!cart[item.id])cart[item.id]=[];
+  cart[item.id].push({qty:1,selections:selLabels,extra,ingIds:chosenIngIds});
+  closeModal();renderOrderMenu();
+}
+
+// =====================================================================
+// CARRELLO
+// =====================================================================
+function renderCart(){
+  const ids=Object.keys(cart).filter(id=>cart[id].length>0);
+  const sec=document.getElementById('cart-section');
+  if(!ids.length){sec.style.display='none';return;}
+  sec.style.display='block';let total=0;
+  document.getElementById('cart-items').innerHTML=ids.map(id=>{
+    const item=menu.find(i=>i.id===id);if(!item)return'';
+    return cart[id].map((e,ei)=>{
+      const sub=(item.price+e.extra)*e.qty;total+=sub;
+      const selStr=Object.entries(e.selections).filter(([,v])=>v.length).map(([k,v])=>`${k}: ${v.join(', ')}`).join(' · ');
+      return`<div class="cart-item">
+        <div><div>${item.name} × ${e.qty}</div>${selStr?`<div class="cart-item-detail">${selStr}</div>`:''}</div>
+        <div style="text-align:right;white-space:nowrap;">€${sub.toFixed(2)}
+          <button onclick="removeCartEntry('${id}',${ei})" style="background:none;border:none;color:#8a2020;cursor:pointer;font-size:1rem;margin-left:6px;">×</button>
+        </div>
+      </div>`;
+    }).join('');
+  }).join('');
+  document.getElementById('cart-total').textContent=`Totale: €${total.toFixed(2)}`;
+}
+function removeCartEntry(id,ei){if(!cart[id])return;cart[id].splice(ei,1);if(!cart[id].length)delete cart[id];renderOrderMenu();}
+function clearCart(){cart={};renderOrderMenu();}
+
+// =====================================================================
+// INVIO ORDINE
+// =====================================================================
+function submitOrder(){
+  const ids=Object.keys(cart).filter(id=>cart[id].length>0);if(!ids.length)return;
+  const table=document.getElementById('table-number').value||'?';
+  const note=document.getElementById('order-note').value.trim();
+  const items=[];
+  ids.forEach(id=>{
+    const item=menu.find(i=>i.id===id);
+    cart[id].forEach(e=>{items.push({name:item.name,qty:e.qty,price:item.price+e.extra,itemId:id,selections:e.selections,extra:e.extra,ingIds:e.ingIds||[]});});
+  });
+  const total=items.reduce((s,i)=>s+i.price*i.qty,0);
+  // scala quantità piatti
+  items.forEach(oi=>{
+    const item=menu.find(i=>i.id===oi.itemId);
+    if(item&&item.qty!==null){item.qty=Math.max(0,item.qty-oi.qty);if(item.qty===0)item.available=false;}
+  });
+  // scala quantità ingredienti
+  items.forEach(oi=>{
+    if(!oi.ingIds||!oi.ingIds.length)return;
+    oi.ingIds.forEach(ingId=>{
+      const g=ingLib.find(x=>x.id===ingId);
+      if(g&&!g.unlimited&&g.qty!==null){g.qty=Math.max(0,g.qty-oi.qty);if(g.qty===0)g.available=false;}
+    });
+  });
+  orders.unshift({id:'ORD-'+Date.now().toString().slice(-5),table,customer:currentUser,items,note,total,time:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),status:'pending'});
+  saveAll();cart={};document.getElementById('order-note').value='';
+  renderOrderMenu();renderPublicMenu();
+  const s=document.getElementById('order-success');s.style.display='block';setTimeout(()=>s.style.display='none',4000);
+  if(kitchenLoggedIn)renderKitchen();
+}
+
+// =====================================================================
+// AUTENTICAZIONE
+// =====================================================================
+function loginOrder(){
+  const name=document.getElementById('order-name').value.trim();
+  const pwd=document.getElementById('order-pwd').value;
+  if(!name||pwd!==pwds.order){document.getElementById('order-err').style.display='block';return;}
+  currentUser=name;orderLoggedIn=true;
+  document.getElementById('order-login').style.display='none';
+  document.getElementById('order-panel').style.display='block';
+  document.getElementById('display-name').textContent=name;
+  renderOrderMenu();
+}
+function logoutOrder(){orderLoggedIn=false;currentUser='';document.getElementById('order-login').style.display='block';document.getElementById('order-panel').style.display='none';document.getElementById('order-pwd').value='';document.getElementById('order-name').value='';document.getElementById('order-err').style.display='none';cart={};}
+function loginKitchen(){
+  if(document.getElementById('kitchen-pwd').value!==pwds.kitchen){document.getElementById('kitchen-err').style.display='block';return;}
+  kitchenLoggedIn=true;document.getElementById('kitchen-login').style.display='none';document.getElementById('kitchen-panel').style.display='block';
+  renderKitchen();
+  kitchenTimer=setInterval(()=>{ingLib=load('rm_inglib',DEFAULT_ING_LIB);menu=load('rm_menu',DEFAULT_MENU);orders=load('rm_orders',[]);renderKitchen();},5000);
+}
+function logoutKitchen(){kitchenLoggedIn=false;clearInterval(kitchenTimer);document.getElementById('kitchen-login').style.display='block';document.getElementById('kitchen-panel').style.display='none';document.getElementById('kitchen-pwd').value='';}
+function loginAdmin(){
+  if(document.getElementById('admin-pwd').value!==pwds.admin){document.getElementById('admin-err').style.display='block';return;}
+  adminLoggedIn=true;document.getElementById('admin-login').style.display='none';document.getElementById('admin-panel').style.display='block';renderAdmin();
+}
+function logoutAdmin(){adminLoggedIn=false;document.getElementById('admin-login').style.display='block';document.getElementById('admin-panel').style.display='none';document.getElementById('admin-pwd').value='';}
+
+// =====================================================================
+// CUCINA
+// =====================================================================
+function renderKitchen(){
+  const pending=orders.filter(o=>o.status==='pending');
+  const archived=orders.filter(o=>o.status==='done');
+  document.getElementById('badge-pending').textContent=pending.length;
+  document.getElementById('orders-pending').innerHTML=pending.length===0?'<p style="color:#8a7560;font-size:.9rem;padding:1rem 0;">Nessun ordine in attesa 🎉</p>':pending.map(o=>orderCard(o,false)).join('');
+  document.getElementById('orders-archived').innerHTML=archived.length===0?'<p style="color:#8a7560;font-size:.9rem;padding:1rem 0;">Nessun ordine archiviato.</p>':archived.map(o=>orderCard(o,true)).join('');
+}
+function orderCard(o,arch){
+  const itemsHtml=o.items.map(i=>{
+    const selStr=i.selections?Object.entries(i.selections).filter(([,v])=>v&&v.length).map(([k,v])=>`${k}: ${v.join(', ')}`).join(' · '):'';
+    return`<div>${i.qty}× <strong>${i.name}</strong>${i.extra?` (+€${Number(i.extra).toFixed(2)})`:''}${selStr?`<div class="order-item-custom">↳ ${selStr}</div>`:''}</div>`;
+  }).join('');
+  return`<div class="order-card${arch?' done':''}">
+    <div class="order-header">
+      <div><div class="order-id">${o.id} · ${o.time}</div><div class="order-table">Tavolo ${o.table}</div><div style="margin-top:3px;"><span class="user-pill">👤 ${o.customer||'–'}</span></div></div>
+      <div style="font-size:.85rem;color:#5a4a35;">€${Number(o.total).toFixed(2)}</div>
+    </div>
+    <div class="order-items-list">${itemsHtml}</div>
+    ${o.note?`<div class="order-note-show">📝 ${o.note}</div>`:''}
+    <div class="order-actions">
+      ${!arch?`<button class="btn btn-sm btn-success" onclick="markDone('${o.id}')">✓ Elaborato</button>`:''}
+      <button class="btn btn-sm btn-danger" onclick="deleteOrder('${o.id}')">Elimina</button>
+    </div>
+  </div>`;
+}
+function markDone(id){const o=orders.find(x=>x.id===id);if(o){o.status='done';saveAll();renderKitchen();}}
+function deleteOrder(id){orders=orders.filter(x=>x.id!==id);saveAll();renderKitchen();}
+
+// =====================================================================
+// ADMIN
+// =====================================================================
+function renderAdmin(){
+  renderIngLib();
+  document.getElementById('admin-avail-grid').innerHTML=menu.map(i=>{
+    const av=isAvail(i);
+    return`<div class="admin-item">
+      ${i.img?`<img class="admin-item-img vis" src="${i.img}" />`:''}
+      <div class="admin-item-name">${i.name} <span style="font-size:.72rem;color:#8a7560;">(${i.cat})</span>
+        ${i.composable?'<span class="badge b-comp" style="margin-left:4px;">comp.</span>':''}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+        <span style="font-size:.85rem;color:#5a4a35;">€${Number(i.price).toFixed(2)}</span>
+        <button class="toggle-avail ${av?'t-on':'t-off'}" onclick="toggleAvail('${i.id}')">${av?'✓ Attivo':'✗ Esaurito'}</button>
+      </div>
+      <div class="qty-input-row">
+        <label>Q.tà:</label>
+        <input type="number" class="qty-small-input" min="0" value="${i.qty!==null?i.qty:''}" placeholder="∞"
+          id="qty-${i.id}" onchange="setQty('${i.id}',this.value)" ${i.qty===null?'disabled':''} />
+        <label class="unlimited-check"><input type="checkbox" ${i.qty===null?'checked':''} onchange="toggleUnlimited('${i.id}',this)" /> ∞</label>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('admin-remove-list').innerHTML=menu.map(i=>`
+    <div class="table-row">
+      ${i.img?`<img src="${i.img}" style="width:36px;height:36px;object-fit:cover;border-radius:3px;" />`:''}
+      <span style="flex:1;font-size:.9rem;">${i.name}${i.composable?' <span class="badge b-comp" style="display:inline-block;">comp.</span>':''}</span>
+      <button class="btn btn-sm btn-danger" onclick="removeItem('${i.id}')">Rimuovi</button>
+    </div>`).join('');
+  document.getElementById('pwd-order').value=pwds.order;
+  document.getElementById('pwd-kitchen').value=pwds.kitchen;
+  document.getElementById('pwd-admin').value=pwds.admin;
+}
+function toggleAvail(id){const i=menu.find(x=>x.id===id);if(!i)return;if(isAvail(i))i.available=false;else{i.available=true;if(i.qty!==null&&i.qty===0)i.qty=1;}saveAll();renderAdmin();renderPublicMenu();}
+function setQty(id,val){const item=menu.find(x=>x.id===id);if(!item)return;const n=parseInt(val);if(isNaN(n)||n<0)return;item.qty=n;item.available=n>0;saveAll();renderPublicMenu();if(adminLoggedIn)renderAdmin();}
+function toggleUnlimited(id,cb){const item=menu.find(x=>x.id===id);if(!item)return;item.qty=cb.checked?null:10;item.available=true;saveAll();renderPublicMenu();if(adminLoggedIn)renderAdmin();}
+
+// =====================================================================
+// GRUPPI COMPONIBILI (nuovo piatto)
+// =====================================================================
+function toggleCompSection(cb){
+  document.getElementById('new-comp-section').style.display=cb.checked?'block':'none';
+  if(cb.checked&&newCompGroups.length===0)addCompGroup();else renderNewCompGroups();
+}
+function addCompGroup(){newCompGroups.push({name:'Gruppo',type:'multi',ingIds:[]});renderNewCompGroups();}
+function removeCompGroup(gi){newCompGroups.splice(gi,1);renderNewCompGroups();}
+function renderNewCompGroups(){
+  document.getElementById('new-comp-groups').innerHTML=newCompGroups.map((g,gi)=>`
+    <div class="comp-group-row">
+      <div class="comp-group-header">
+        <input type="text" value="${g.name}" placeholder="Nome gruppo" oninput="newCompGroups[${gi}].name=this.value" />
+        <select onchange="newCompGroups[${gi}].type=this.value">
+          <option value="multi"${g.type==='multi'?' selected':''}>Più scelte</option>
+          <option value="single"${g.type==='single'?' selected':''}>Scelta singola</option>
+        </select>
+        <button onclick="removeCompGroup(${gi})">✕</button>
+      </div>
+      <div class="ing-checkboxes">
+        ${ingLib.map(opt=>{
+          const sel=g.ingIds.includes(opt.id);
+          const av=ingAvail(opt);
+          return`<label class="ing-check-label${sel?' selected':''}${!av?' unavail-lib':''}">
+            <input type="checkbox" ${sel?'checked':''} onchange="toggleIngInGroup(${gi},'${opt.id}',this.checked)" style="accent-color:#2c1810;" />
+            ${opt.label}${opt.extra?` <span style="font-size:.68rem;color:#8a7560;">+€${opt.extra}</span>`:''}
+            ${!opt.unlimited&&opt.qty!==null&&opt.qty<=3&&opt.qty>0?`<span class="badge b-low" style="font-size:.6rem;padding:0 3px;">${opt.qty}</span>`:''}
+            ${!av?'<span class="badge b-unavail" style="font-size:.6rem;padding:0 3px;">esaurito</span>':''}
+          </label>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+function toggleIngInGroup(gi,ingId,checked){
+  if(checked&&!newCompGroups[gi].ingIds.includes(ingId))newCompGroups[gi].ingIds.push(ingId);
+  else if(!checked)newCompGroups[gi].ingIds=newCompGroups[gi].ingIds.filter(x=>x!==ingId);
+  renderNewCompGroups();
+}
+
+// IMAGE
+function previewNewImg(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{newImgData=e.target.result;const p=document.getElementById('new-img-preview');p.src=newImgData;p.classList.add('vis');document.getElementById('clear-img-btn').style.display='inline-block';document.getElementById('img-upload-lbl').textContent='📷 Immagine caricata';};
+  reader.readAsDataURL(file);
+}
+function clearNewImg(){newImgData=null;document.getElementById('new-img-input').value='';const p=document.getElementById('new-img-preview');p.src='';p.classList.remove('vis');document.getElementById('clear-img-btn').style.display='none';document.getElementById('img-upload-lbl').textContent='📷 Clicca per caricare';}
+
+function addItem(){
+  const name=document.getElementById('new-name').value.trim();
+  const desc=document.getElementById('new-desc').value.trim();
+  const price=parseFloat(document.getElementById('new-price').value);
+  const cat=document.getElementById('new-cat').value;
+  const unlimited=document.getElementById('new-unlimited').checked;
+  const qtyRaw=parseInt(document.getElementById('new-qty').value);
+  const qty=unlimited?null:(isNaN(qtyRaw)?10:qtyRaw);
+  const composable=document.getElementById('new-composable').checked;
+  if(!name||isNaN(price))return;
+  menu.push({id:'i'+Date.now(),name,desc,price,cat,available:unlimited||qty>0,qty,composable,groups:composable?JSON.parse(JSON.stringify(newCompGroups)):[],img:newImgData});
+  saveAll();
+  document.getElementById('new-name').value='';document.getElementById('new-desc').value='';document.getElementById('new-price').value='';document.getElementById('new-qty').value='10';
+  document.getElementById('new-unlimited').checked=false;document.getElementById('new-qty').disabled=false;
+  document.getElementById('new-composable').checked=false;document.getElementById('new-comp-section').style.display='none';
+  newCompGroups=[];newImgData=null;renderNewCompGroups();clearNewImg();
+  const s=document.getElementById('add-success');s.style.display='block';setTimeout(()=>s.style.display='none',2500);
+  renderAdmin();renderPublicMenu();
+}
+function removeItem(id){if(!confirm('Rimuovere questo piatto dal menù?'))return;menu=menu.filter(i=>i.id!==id);saveAll();renderAdmin();renderPublicMenu();}
+function savePwds(){pwds.order=document.getElementById('pwd-order').value;pwds.kitchen=document.getElementById('pwd-kitchen').value;pwds.admin=document.getElementById('pwd-admin').value;saveAll();const s=document.getElementById('pwd-success');s.style.display='block';setTimeout(()=>s.style.display='none',2500);}
+
+// =====================================================================
+// NAVIGAZIONE
+// =====================================================================
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  ['menu','order','kitchen','admin'].forEach((p,i)=>{if(p===id)document.querySelectorAll('.nav-btn')[i].classList.add('active');});
+  if(id==='menu')renderPublicMenu();
+  if(id==='kitchen'&&kitchenLoggedIn)renderKitchen();
+  if(id==='admin'&&adminLoggedIn)renderAdmin();
+}
+function switchTab(n){
+  document.querySelectorAll('#kitchen-panel .tab').forEach((t,i)=>t.classList.toggle('active',['pending','archived'][i]===n));
+  document.querySelectorAll('#kitchen-panel .tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+}
+function switchAdminTab(n){
+  const names=['ingredients','availability','items','passwords'];
+  document.querySelectorAll('#admin-panel .tab').forEach((t,i)=>t.classList.toggle('active',names[i]===n));
+  document.querySelectorAll('#admin-panel .tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('admin-tab-'+n).classList.add('active');
+  if(n==='items')renderNewCompGroups();
+}
+
+// AVVIO
+renderPublicMenu();
+</script>
+</body>
+</html>
